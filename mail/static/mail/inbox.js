@@ -132,6 +132,7 @@ function load_email(id, mailbox) {
       if (mailbox === 'inbox') {
         const archiveBtn = document.createElement('button');
         archiveBtn.innerText = 'Archive';
+        archiveBtn.className += "mx-1";
         // make sure user can't archive already archive mail (user won't even see disabled button without bug)
         if (result['archived'] === true) { archiveBtn.disabled = true; }
 
@@ -153,6 +154,7 @@ function load_email(id, mailbox) {
       } else if (mailbox === 'archive') {
         const archiveBtn = document.createElement('button');
         archiveBtn.innerText = 'Unarchive';
+        archiveBtn.className += "mx-1";
         archiveBtn.addEventListener('click', () => {
           // send PUT request to archive the mail
           fetch(`/emails/${id}`, {
@@ -170,6 +172,17 @@ function load_email(id, mailbox) {
         mailBody.append(archiveBtn);
       }
 
+      // add reply button (for inbox, archive)
+      if (mailbox === 'inbox' || mailbox === 'archive') {
+        const replyBtn = document.createElement('button');
+        replyBtn.id = 'reply';
+        replyBtn.innerText = 'Reply';
+        replyBtn.className += "mx-1";
+        replyBtn.addEventListener('click', () => {
+          reply_email(result)
+        })
+        mailBody.append(replyBtn);
+      }
 
       // Mark the email as read (Send PUT request)
       if (result['read'] === false) {
@@ -185,4 +198,17 @@ function load_email(id, mailbox) {
       }
     }
     );
+}
+
+function reply_email(email) {
+  // Show compose view and hide other views
+  document.querySelector('#emails-view').style.display = 'none';
+  document.querySelector('#email-view').style.display = 'none';
+  document.querySelector('#compose-view').style.display = 'block';
+
+  // Clear out composition fields
+  document.querySelector('#compose-recipients').value = `${email.sender}`;
+  document.querySelector('#compose-subject').value = (email.subject.substring(0, 3) !== 'Re:') ? `Re: ${email.subject}` : email.subject;
+  document.querySelector('#compose-body').value = `On ${email.timestamp} ${email.sender} wrote: \n ${email.body}\n---------------------------------------------\n`;
+  
 }
