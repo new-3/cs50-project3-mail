@@ -66,7 +66,7 @@ function load_mailbox(mailbox) {
           childDiv.className = 'col mx-1';
           childDiv.innerHTML = `<p>${item[div]}</p>`;
           if (div === 'subject') {
-            childDiv.addEventListener('click', () => load_email(item['id']))
+            childDiv.addEventListener('click', () => load_email(item['id'], mailbox))
             childDiv.className += ' font-weight-bold'
           }
           emailList.appendChild(childDiv);
@@ -98,7 +98,7 @@ function send_email() {
     });
 }
 
-function load_email(id) {
+function load_email(id, mailbox) {
 
   // Show the mailbox and hide other views
   document.querySelector('#email-view').style.display = 'block';
@@ -112,7 +112,6 @@ function load_email(id) {
   fetch(`/emails/${id}`)
     .then(response => response.json())
     .then(result => {
-      console.log(result);
       const mailBody = document.querySelector('#email-view').appendChild(document.createElement('div'));
       mailBody.id = 'mailBody';
       mailBody.className = "my-1 px-1";
@@ -129,13 +128,61 @@ function load_email(id) {
         mailBody.appendChild(childDiv);
       });
 
+      // add archive(for inbox mailbox), unarchive(for archive mailbox) button 
+      if (mailbox === 'inbox') {
+        const archiveBtn = document.createElement('button');
+        archiveBtn.innerText = 'Archive';
+        // make sure user can't archive already archive mail (user won't even see disabled button without bug)
+        if (result['archived'] === true) { archiveBtn.disabled = true; }
+
+        archiveBtn.addEventListener('click', () => {
+          // send PUT request to archive the mail
+          fetch(`/emails/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              archived: true
+            })
+          })
+            .then(result => {
+              console.log(result);
+              load_mailbox('inbox');
+            });
+        }
+        )
+        mailBody.append(archiveBtn);
+      } else if (mailbox === 'archive') {
+        const archiveBtn = document.createElement('button');
+        archiveBtn.innerText = 'Unarchive';
+        archiveBtn.addEventListener('click', () => {
+          // send PUT request to archive the mail
+          fetch(`/emails/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              archived: false
+            })
+          })
+            .then(result => {
+              console.log(result);
+              load_mailbox('inbox');
+            });
+        }
+        )
+        mailBody.append(archiveBtn);
+      }
+
+
       // Mark the email as read (Send PUT request)
-      fetch(`/emails/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          read: true
+      if (result['read'] === false) {
+        fetch(`/emails/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            read: true
+          })
         })
-      })
+        .then(result => {
+          console.log(result);
+        })
+      }
     }
     );
 }
